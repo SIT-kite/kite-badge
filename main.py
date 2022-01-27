@@ -1,0 +1,130 @@
+import os
+import random
+import datetime
+from typing import Dict, Tuple
+
+import flask
+from werkzeug import secure_filename
+import psycopg2
+import jwt
+
+from .scan import detect
+
+app = flask.Flask('kite-fu')
+
+@app.after_request
+def after_request(resp: flask.Response):
+    resp.headers['Access-Control-Allow-Origin'] = 'cdn.kite.sunnysab.cn'
+    return resp
+ 
+@app.before_request
+def auth():
+    request: flask.Request = request
+    try:
+        token = request.headers['Authorization']
+        token = token[7:].strip()
+        flask.g.uid = decode_jwt(token)
+    except:
+        return {'code': 1, 'msg': '凭据无效'}, 200
+
+
+# Web 服务端密钥
+JWT_SECRET = ''
+
+# 数据库配置
+DB_HOST = ''
+DB_NAME = ''
+DB_USER = ''
+DB_PASSWD = ''
+
+# 福卡的概率列表
+CARDS_PROBABILITY = [0.3, 0.3, 0.2, 0.15, 0.05]
+# 福卡概率分布, 降序排列
+CARDS_PROBABILITY2 = sorted([CARDS_PROBABILITY[i-1] + CARDS_PROBABILITY[i] if i > 0 else CARDS_PROBABILITY[i]
+    for i in range(len(CARDS_PROBABILITY))], reverse=True)
+# 抽中卡片的概率
+CARD_PROBABILITY = 0.35
+# 活动截止时间
+END_TIME = datetime.date(2022, 2, 10)
+# 单日卡片限制
+DAY_CARDS_LIMIT = 2
+# 校徽置信度限制
+THRESHOLD = 0.90
+
+
+if not os.path.exists('images/'):
+    os.mkdir('images')
+
+
+db = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWD)
+
+
+def decode_jwt(token: str) -> int:
+    """ 根据 JWT Token 解析用户 uid """
+    info = jwt.decode(token, JWT_SECRET, True, algorithm='HS256')
+    return info['uid']
+
+
+def get_card() -> int:
+    """ 根据概率分配一张卡片 """
+    rand_value = random.randrange(0, 100)
+    
+    for i, v in zip(CARDS_PROBABILITY2):
+        if rand_value < v:
+            return i
+
+
+def win_card() -> bool:
+    return CARD_PROBABILITY < random.random()
+
+
+def get_user_today_card_count(uid: int) -> int:
+    cur = db.cursor()
+
+    cur.execute('SELECT COUNT(*) FROM fu.scan WHERE uid = ? AND ts >= current_date;', (uid,))
+    count = cur.fetchone()[0]
+    
+    cur.close()
+    return count
+
+
+def save_result(uid: int, result: int, card: int = None):
+    cur = db.cursor()
+    cur.execute('INSERT INTO fu.scan (uid, result, card) VALUES (?, ?, ?)', (uid, result, card))
+    cur.close()
+
+
+def response(uid: int, result: int, card: int = None) -> Tuple[Dict, int]:
+    return {'code': 0, 'data': {'uid': uid, 'result': result, 'card': card}}, 200
+
+
+@app.route("/badge/image", methods=['POST'])
+def hello_world():
+    request: flask.Request = request
+    uid = flask.g.uid
+
+    if datetime.datetime.now() >= END_TIME: # 活动已结束
+        return response(uid, 5)
+    if get_user_today_card_count(uid) >= DAY_CARDS_LIMIT: # 达到单日最大次数
+        return response(uid, 2)
+
+    file: flask.File = request.files['badge']
+    path = f'images/{uid}_{secure_filename(file.filename)}'
+    file.save(path)
+
+    # 识别校徽并对置信度降序后返回
+    result = detect(path)[0]
+    if result < THRESHOLD: # 没有识别到校徽
+        save_result(uid, 1)
+        return response(uid, 1)
+
+    if not win_card(): # 没抽中
+        save_result(uid, 3)
+        return response(uid, 3)
+
+    card = get_card()
+    save_result(uid, 4, card)
+    return response(uid, 4, card)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5001, debug=False)
