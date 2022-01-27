@@ -39,7 +39,7 @@ def init(ckpt_path):
     logger.info("loaded yolox_nano model done.")
 
 
-def inference(img: cv2.Image) -> List[float]:
+def inference(img) -> List[float]:
     """
     执行推理
     """

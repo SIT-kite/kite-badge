@@ -4,11 +4,11 @@ import datetime
 from typing import Dict, Tuple
 
 import flask
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 import psycopg2
 import jwt
 
-from .scan import detect
+from scan import detect
 
 app = flask.Flask('kite-fu')
 
