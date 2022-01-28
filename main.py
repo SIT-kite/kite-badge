@@ -19,7 +19,7 @@ def after_request(resp: flask.Response):
  
 @app.before_request
 def auth():
-    request: flask.Request = request
+    request: flask.Request = flask.request
     try:
         token = request.headers['Authorization']
         token = token[7:].strip()
@@ -99,8 +99,8 @@ def response(uid: int, result: int, card: int = None) -> Tuple[Dict, int]:
 
 
 @app.route("/badge/image", methods=['POST'])
-def hello_world():
-    request: flask.Request = request
+def upload_image():
+    request: flask.Request = flask.request
     uid = flask.g.uid
 
     if datetime.datetime.now() >= END_TIME: # 活动已结束
@@ -114,6 +114,7 @@ def hello_world():
 
     # 识别校徽并对置信度降序后返回
     result = detect(path)[0]
+    # result = 1.0
     if result < THRESHOLD: # 没有识别到校徽
         save_result(uid, 1)
         return response(uid, 1)
