@@ -72,8 +72,8 @@ def save_result(uid: int, result: int, card: int = None):
     cur.close()
 
 
-def response(uid: int, result: int, card: int = None) -> Tuple[Dict, int]:
-    return {'code': 0, 'data': {'uid': uid, 'result': result, 'card': card}}, 200
+def response(uid: int, result: int, card: int = None, status: int = 200) -> Tuple[Dict, int]:
+    return {'code': 0, 'data': {'uid': uid, 'result': result, 'card': card}}, status
 
 
 @app.route("/badge/image", methods=['POST'])
@@ -90,6 +90,8 @@ def upload_image():
         file = response.data
     elif request.headers['Content-Type'] == 'text/plain':
         file = base64.b64decode(request.data)
+    else:
+        return response(uid, 6, None, 400)
     path = f'images/{uid}_{datetime.now().timestamp()}.jpg'
     with open(path, 'wb') as f:
         f.write(file)
