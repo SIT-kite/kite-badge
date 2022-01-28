@@ -1,3 +1,4 @@
+import base64
 import os
 import random
 import datetime
@@ -25,7 +26,7 @@ def auth():
         token = request.headers['Authorization']
         token = token[7:].strip()
         flask.g.uid = decode_jwt(token)
-    except:
+    except Exception as _:
         return {'code': 1, 'msg': '凭据无效'}, 200
 
 
@@ -38,7 +39,7 @@ db = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_
 
 def decode_jwt(token: str) -> int:
     """ 根据 JWT Token 解析用户 uid """
-    info = jwt.decode(token, JWT_SECRET, True, algorithm='HS256')
+    info = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
     return info['uid']
 
 
@@ -58,7 +59,7 @@ def win_card() -> bool:
 def get_user_today_card_count(uid: int) -> int:
     cur = db.cursor()
 
-    cur.execute('SELECT COUNT(*) FROM fu.scan WHERE uid = ? AND ts >= current_date;', (uid,))
+    cur.execute('SELECT COUNT(*) FROM fu.scan WHERE uid = %s AND ts >= current_date;', (uid,))
     count = cur.fetchone()[0]
     
     cur.close()
@@ -67,7 +68,7 @@ def get_user_today_card_count(uid: int) -> int:
 
 def save_result(uid: int, result: int, card: int = None):
     cur = db.cursor()
-    cur.execute('INSERT INTO fu.scan (uid, result, card) VALUES (?, ?, ?)', (uid, result, card))
+    cur.execute('INSERT INTO fu.scan (uid, result, card) VALUES (%s, %s, %s)', (uid, result, card))
     cur.close()
 
 
@@ -80,14 +81,18 @@ def upload_image():
     request: flask.Request = flask.request
     uid = flask.g.uid
 
-    if datetime.datetime.now() >= END_TIME: # 活动已结束
+    if datetime.now() >= END_TIME: # 活动已结束
         return response(uid, 5)
     if get_user_today_card_count(uid) >= DAY_CARDS_LIMIT: # 达到单日最大次数
         return response(uid, 2)
 
-    file: flask.File = request.files['badge']
-    path = f'images/{uid}_{secure_filename(file.filename)}'
-    file.save(path)
+    if request.headers['Content-Type'].startswith('image/'):
+        file = response.data
+    elif request.headers['Content-Type'] == 'text/plain':
+        file = base64.b64decode(request.data)
+    path = f'images/{uid}_{datetime.now().timestamp()}.jpg'
+    with open(path, 'wb') as f:
+        f.write(file)
 
     # 识别校徽并对置信度降序后返回
     result = detect(path)[0]
