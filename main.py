@@ -45,13 +45,13 @@ def decode_jwt(token: str) -> int:
 
 RESULT_NO_BADGE = 1
 RESULT_COUNT_LIMIT = 2
-RESULT_CARD = 4
-RESULT_END = 5
+RESULT_CARD = 3
+RESULT_END = 4
 
 
-def response(uid: int, result: int, card: int = None, status: int = 200) -> Tuple[Dict, int]:
+def response(uid: int, result: int, card: int = 0, status: int = 200) -> Tuple[Dict, int]:
     save_result(uid, result, card)
-    return {'code': 0, 'data': {'uid': uid, 'result': result, 'card': card}}, status
+    return {'code': 0, 'data': {'result': result, 'card': card}}, status
 
 
 @app.route("/api/v2/badge/image", methods=['POST', 'OPTIONS'])
