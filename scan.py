@@ -38,9 +38,7 @@ def init(ckpt_path):
 
 
 def inference(img) -> List[float]:
-    """
-    执行推理
-    """
+    """ 执行推理 """
     preprocess = ValTransform()
     img, _ = preprocess(img, None, exp.test_size)
     img = torch.from_numpy(img).unsqueeze(0)
@@ -69,10 +67,10 @@ def inference(img) -> List[float]:
 def detect(path: str) -> List[float]:
     # 图片
     img = cv2.imread(path)
-    # 模型地址
-    result = inference(img)
+    if img:
+        return inference(img)
 
-    return result
+    return [0.0]
 
 
 init('./sit-badge.pth')
