@@ -54,7 +54,7 @@ def inference(img) -> List[float]:
         logger.info("Infer time: {:.4f}s".format(time.time() - t0))
 
     result = []
-    if not outputs or not outputs[0]:
+    if outputs is None or outputs[0] is None:
         return [0.0]
 
     for output in outputs[0]:
@@ -67,10 +67,7 @@ def inference(img) -> List[float]:
 def detect(path: str) -> List[float]:
     # 图片
     img = cv2.imread(path)
-    if img:
-        return inference(img)
-
-    return [0.0]
+    return inference(img)
 
 
 init('./sit-badge.pth')
