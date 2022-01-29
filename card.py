@@ -4,7 +4,7 @@
 # @File    : card.py
 
 import random
-from typing import List, Tuple
+from typing import List
 
 import psycopg2
 
@@ -12,54 +12,45 @@ from web_config import *
 
 db = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWD, sslmode='disable')
 
-
-class Card:
-    # 卡片编号
-    id: int
-    # 卡片名称
-    name: str
-    # 卡片对应的图片（如果无卡片，使用文字）
-    image: str
-    # 无卡片时的文字
-    text: str
-
-    probability: float
-
-    def __init__(self, id, name, image=None, text=None, probability=0.0):
-        assert image or text
-        self.id, self.name, self.image, self.text = id, name, image, text
-        self.probability = probability
-
-
-_CARD_LIST = [
-    Card(0, '无卡片', text='', probability=0.6),
-    Card(1, '上应福', image='https://', probability=0.4 * 0.3),
-    Card(2, '创新福', image='', probability=0.4 * 0.25),
-    Card(3, '博学福', image='', probability=0.4 * 0.20),
-    Card(4, '富贵福', image='', probability=0.4 * 0.20),
-    Card(5, '康宁福', image='', probability=0.4 * 0.05),
+_DEFAULT_PROBABILITY_LIST = [
+    0.6,  # 无卡片
+    0.4 * 0.3,
+    0.4 * 0.25,
+    0.4 * 0.20,
+    0.4 * 0.20,
+    0.4 * 0.05,
 ]
 
 
-def _generate_distribution(card_list: List[Card]) -> List[Tuple[float, Card]]:
+def _generate_distribution(probability_list: List[float]) -> List[float]:
     """ 根据卡片的概率列表, 得到卡片的分布, 映射到 [0, 1) 空间.
     返回的列表元素中, 第一个值为其分布的 "顶", 例如, 分布为 [0, 0.5), [0.5, 1) 的两张卡片,
-    函数返回为: (0.5, card1), (1, card2) """
+    函数返回为: [0.5, 1] """
     ceil: float = 0.0
-    result = []
-    for card in card_list:
-        ceil += card.probability
-        result.append((ceil, card))
+    distribution_list = probability_list.copy()
+    for i in range(len(distribution_list)):
+        ceil += probability_list[i]
+        distribution_list = ceil
 
     # 最后一张卡片的上边界应该为 1
-    assert abs(result[-1][0] - 1.0) < 0.01
-    return result
+    assert abs(distribution_list[-1] - 1.0) < 0.01
+    return distribution_list
 
 
-def get_card() -> Card:
-    """ 根据概率分配一张卡片 """
+def generate_probability_list(seed: int) -> List[float]:
+    """ 用循环移位的方法, 为每组用户生成不同的概率表. 注意, 列表的第0个元素始终表示 "无卡片" """
+    probability_list = _DEFAULT_PROBABILITY_LIST[1:].copy()
+    seed %= len(probability_list)
+
+    probability_list = probability_list[seed:] + probability_list[:seed]
+    return [_DEFAULT_PROBABILITY_LIST[0]] + probability_list
+
+
+def get_card(uid: int) -> int:
+    """ 根据概率分配一张卡片, 返回卡片 ID """
     real: float = random.random()
-    dist: List = _generate_distribution(_CARD_LIST)
+    prob: List = generate_probability_list(uid)
+    dist: List = _generate_distribution(prob)
     _, result = dist[0]  # 初始卡片为第一张
     for p, card in dist:
         if real < p:

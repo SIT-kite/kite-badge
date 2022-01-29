@@ -1,7 +1,7 @@
 import base64
 import datetime
 import os
-from typing import Dict
+from typing import Dict, Tuple
 
 import flask
 import jwt
@@ -80,8 +80,8 @@ def upload_image():
     if result < THRESHOLD:  # 没有识别到校徽
         return response(uid, RESULT_NO_BADGE)
 
-    card: Card = get_card()
-    return response(uid, RESULT_CARD, card.id)
+    card: int = get_card(uid)
+    return response(uid, RESULT_CARD, card)
 
 
 if __name__ == '__main__':
