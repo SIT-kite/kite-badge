@@ -23,6 +23,9 @@ def after_request(resp: flask.Response):
 @app.before_request
 def auth():
     request: flask.Request = flask.request
+    if request.method == 'OPTIONS':
+        return '', 200
+
     try:
         token = request.headers['Authorization']
         token = token[7:].strip()
@@ -76,7 +79,7 @@ def response(uid: int, result: int, card: int = None, status: int = 200) -> Tupl
     return {'code': 0, 'data': {'uid': uid, 'result': result, 'card': card}}, status
 
 
-@app.route("/api/v2/badge/image", methods=['POST'])
+@app.route("/api/v2/badge/image", methods=['POST', 'OPTIONS'])
 def upload_image():
     request: flask.Request = flask.request
     uid = flask.g.uid
