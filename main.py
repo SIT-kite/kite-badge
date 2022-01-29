@@ -1,22 +1,24 @@
 import base64
+import datetime
 import os
 import random
-import datetime
 from typing import Dict, Tuple
 
 import flask
-import psycopg2
 import jwt
+import psycopg2
 
 from scan import detect
 from web_config import *
 
 app = flask.Flask('kite-fu')
 
+
 @app.after_request
 def after_request(resp: flask.Response):
     resp.headers['Access-Control-Allow-Origin'] = 'cdn.kite.sunnysab.cn'
     return resp
+
 
 @app.before_request
 def auth():
@@ -31,7 +33,6 @@ def auth():
 
 if not os.path.exists('images/'):
     os.mkdir('images')
-
 
 db = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWD, sslmode='disable')
 
@@ -80,9 +81,9 @@ def upload_image():
     request: flask.Request = flask.request
     uid = flask.g.uid
 
-    if datetime.now() >= END_TIME: # 活动已结束
+    if datetime.now() >= END_TIME:  # 活动已结束
         return response(uid, 5)
-    if get_user_today_card_count(uid) >= DAY_CARDS_LIMIT: # 达到单日最大次数
+    if get_user_today_card_count(uid) >= DAY_CARDS_LIMIT:  # 达到单日最大次数
         return response(uid, 2)
 
     if request.headers['Content-Type'].startswith('image/'):
@@ -98,17 +99,18 @@ def upload_image():
     # 识别校徽并对置信度降序后返回
     result = detect(path)[0]
     # result = 1.0
-    if result < THRESHOLD: # 没有识别到校徽
+    if result < THRESHOLD:  # 没有识别到校徽
         save_result(uid, 1)
         return response(uid, 1)
 
-    if not win_card(): # 没抽中
+    if not win_card():  # 没抽中
         save_result(uid, 3)
         return response(uid, 3)
 
     card = get_card()
     save_result(uid, 4, card)
     return response(uid, 4, card)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=False)

@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-import time
 import sys
+import time
 from typing import List
 
-from loguru import logger
 import cv2
 import torch
-
+from loguru import logger
 from yolox.data.data_augment import ValTransform
 from yolox.exp import get_exp
 from yolox.utils import get_model_info, postprocess
-
 
 # YOLOX项目路径
 yolox_path = r'/root/YOLOX'
@@ -43,8 +41,8 @@ def inference(img) -> List[float]:
     """
     执行推理
     """
-    preproc = ValTransform()
-    img, _ = preproc(img, None, exp.test_size)
+    preprocess = ValTransform()
+    img, _ = preprocess(img, None, exp.test_size)
     img = torch.from_numpy(img).unsqueeze(0)
     img = img.float()
 
