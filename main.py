@@ -5,7 +5,6 @@ import datetime
 from typing import Dict, Tuple
 
 import flask
-from werkzeug.utils import secure_filename
 import psycopg2
 import jwt
 
@@ -18,7 +17,7 @@ app = flask.Flask('kite-fu')
 def after_request(resp: flask.Response):
     resp.headers['Access-Control-Allow-Origin'] = 'cdn.kite.sunnysab.cn'
     return resp
- 
+
 @app.before_request
 def auth():
     request: flask.Request = flask.request
@@ -34,7 +33,7 @@ if not os.path.exists('images/'):
     os.mkdir('images')
 
 
-db = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWD)
+db = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWD, sslmode='disable')
 
 
 def decode_jwt(token: str) -> int:
@@ -46,8 +45,8 @@ def decode_jwt(token: str) -> int:
 def get_card() -> int:
     """ 根据概率分配一张卡片 """
     rand_value = random.randrange(0, 100)
-    
-    for i, v in zip(CARDS_PROBABILITY2):
+
+    for i, v in dict(zip(CARDS_PROBABILITY2)):
         if rand_value < v:
             return i
 
@@ -61,7 +60,7 @@ def get_user_today_card_count(uid: int) -> int:
 
     cur.execute('SELECT COUNT(*) FROM fu.scan WHERE uid = %s AND ts >= current_date;', (uid,))
     count = cur.fetchone()[0]
-    
+
     cur.close()
     return count
 
@@ -76,7 +75,7 @@ def response(uid: int, result: int, card: int = None, status: int = 200) -> Tupl
     return {'code': 0, 'data': {'uid': uid, 'result': result, 'card': card}}, status
 
 
-@app.route("/badge/image", methods=['POST'])
+@app.route("/api/v2/badge/image", methods=['POST'])
 def upload_image():
     request: flask.Request = flask.request
     uid = flask.g.uid
@@ -87,12 +86,12 @@ def upload_image():
         return response(uid, 2)
 
     if request.headers['Content-Type'].startswith('image/'):
-        file = response.data
+        file = request.data
     elif request.headers['Content-Type'] == 'text/plain':
         file = base64.b64decode(request.data)
     else:
         return response(uid, 6, None, 400)
-    path = f'images/{uid}_{datetime.now().timestamp()}.jpg'
+    path = f'./images/{uid}_{datetime.now().timestamp()}.jpg'
     with open(path, 'wb') as f:
         f.write(file)
 

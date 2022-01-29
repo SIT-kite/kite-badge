@@ -58,8 +58,10 @@ def inference(img) -> List[float]:
         logger.info("Infer time: {:.4f}s".format(time.time() - t0))
 
     result = []
-    for output in outputs:
-        output = output.reshape(7)
+    if not outputs or not outputs[0]:
+        return [0.0]
+
+    for output in outputs[0]:
         scores = output[4] * output[5]
         result.append(scores)
 
@@ -75,4 +77,4 @@ def detect(path: str) -> List[float]:
     return result
 
 
-init('/root/sit-badge.pth')
+init('./sit-badge.pth')
