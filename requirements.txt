@@ -1,0 +1,4 @@
+pyjwt
+loguru
+torch
+opencv-python
