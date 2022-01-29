@@ -62,7 +62,8 @@ def get_card(uid: int) -> int:
 
 def get_user_today_card_count(uid: int) -> int:
     cur = db.cursor()
-    cur.execute('SELECT COUNT(*) FROM fu.scan WHERE uid = %s AND ts >= current_date;', (uid,))
+    cur.execute('SELECT COUNT(*) FROM fu.scan WHERE uid = %s AND ts >= current_date AND result = 3 AND card != 0;',
+                (uid,))
     count = cur.fetchone()[0]
     cur.close()
     return count
@@ -71,4 +72,5 @@ def get_user_today_card_count(uid: int) -> int:
 def save_result(uid: int, result: int, card: int = None):
     cur = db.cursor()
     cur.execute('INSERT INTO fu.scan (uid, result, card) VALUES (%s, %s, %s)', (uid, result, card))
+    db.commit()
     cur.close()
