@@ -26,11 +26,11 @@ def _generate_distribution(probability_list: List[float]) -> List[float]:
     """ 根据卡片的概率列表, 得到卡片的分布, 映射到 [0, 1) 空间.
     返回的列表元素中, 第一个值为其分布的 "顶", 例如, 分布为 [0, 0.5), [0.5, 1) 的两张卡片,
     函数返回为: [0.5, 1] """
-    ceil: float = 0.0
+    ceil: float = probability_list[0]
     distribution_list = probability_list.copy()
-    for i in range(len(distribution_list)):
+    for i in range(1, len(distribution_list)):
         ceil += probability_list[i]
-        distribution_list = ceil
+        distribution_list[i] = ceil
 
     # 最后一张卡片的上边界应该为 1
     assert abs(distribution_list[-1] - 1.0) < 0.01
@@ -51,12 +51,11 @@ def get_card(uid: int) -> int:
     real: float = random.random()
     prob: List = generate_probability_list(uid)
     dist: List = _generate_distribution(prob)
-    _, result = dist[0]  # 初始卡片为第一张
-    for p, card in dist:
-        if real < p:
+    result = -1  # 初始卡片为第一张
+    for card, p in enumerate(dist):
+        if real > p:
             result = card
-        else:
-            break
+    result += 1
     # 得到 "随机数着落的对应卡片"
     return result
 
