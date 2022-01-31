@@ -14,11 +14,11 @@ db = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_
 
 _DEFAULT_PROBABILITY_LIST = [
     0.6,  # 无卡片
-    0.4 * 0.3,
-    0.4 * 0.25,
-    0.4 * 0.20,
-    0.4 * 0.20,
-    0.4 * 0.05,
+    0.4 * 0.05,  # 上应福
+    0.4 * 0.40,  # 创新福
+    0.4 * 0.30,  # 博学福
+    0.4 * 0.15,  # 富贵福
+    0.4 * 0.10,  # 康宁福
 ]
 
 
@@ -37,22 +37,14 @@ def _generate_distribution(probability_list: List[float]) -> List[float]:
     return distribution_list
 
 
-def generate_probability_list(seed: int) -> List[float]:
-    """ 用循环移位的方法, 为每组用户生成不同的概率表. 注意, 列表的第0个元素始终表示 "无卡片" """
-    probability_list = _DEFAULT_PROBABILITY_LIST[1:].copy()
-    seed %= len(probability_list)
-
-    probability_list = probability_list[seed:] + probability_list[:seed]
-    return [_DEFAULT_PROBABILITY_LIST[0]] + probability_list
+_DISTRIBUTION = _generate_distribution(_DEFAULT_PROBABILITY_LIST)
 
 
-def get_card(uid: int) -> int:
+def get_card() -> int:
     """ 根据概率分配一张卡片, 返回卡片 ID """
     real: float = random.random()
-    prob: List = generate_probability_list(uid)
-    dist: List = _generate_distribution(prob)
     result = -1  # 初始卡片为第一张
-    for card, p in enumerate(dist):
+    for card, p in enumerate(_DISTRIBUTION):
         if real > p:
             result = card
     result += 1

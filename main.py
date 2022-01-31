@@ -80,7 +80,7 @@ def upload_image():
     if result < THRESHOLD:  # 没有识别到校徽
         return response(uid, RESULT_NO_BADGE)
 
-    card: int = get_card(uid)
+    card: int = get_card()
     return response(uid, RESULT_CARD, card)
 
 
