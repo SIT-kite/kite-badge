@@ -15,7 +15,8 @@ app = flask.Flask('kite-fu')
 
 @app.after_request
 def after_request(resp: flask.Response):
-    resp.headers['Access-Control-Allow-Origin'] = 'cdn.kite.sunnysab.cn'
+    resp.headers['Access-Control-Allow-Origin'] = 'https://cdn.kite.sunnysab.cn'
+    resp.headers['Access-Control-Allow-Headers'] = 'Authorization'
     return resp
 
 
@@ -54,7 +55,7 @@ def response(uid: int, result: int, card: int = 0, status: int = 200) -> Tuple[D
     return {'code': 0, 'data': {'result': result, 'card': card}}, status
 
 
-@app.route("/api/v2/badge/image", methods=['POST', 'OPTIONS'])
+@app.route("/api/badge/image", methods=['POST', 'OPTIONS'])
 def upload_image():
     request: flask.Request = flask.request
     uid = flask.g.uid
