@@ -45,7 +45,7 @@ def decode_jwt(token: str) -> int:
 
 
 RESULT_NO_BADGE = 1
-RESULT_COUNT_LIMIT = 2
+RESULT_REACH_LIMIT = 2
 RESULT_CARD = 3
 RESULT_END = 4
 
@@ -62,8 +62,8 @@ def upload_image():
 
     if datetime.now() >= END_TIME:  # 活动已结束
         return response(uid, RESULT_END)
-    if get_user_today_card_count(uid) >= DAY_CARDS_LIMIT:  # 达到单日最大次数
-        return response(uid, RESULT_COUNT_LIMIT)
+    if get_user_today_remaining_times(uid) == 0:  # 达到单日最大次数
+        return response(uid, RESULT_REACH_LIMIT)
 
     if request.headers['Content-Type'].startswith('image/'):
         file = request.data

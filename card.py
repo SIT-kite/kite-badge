@@ -52,10 +52,13 @@ def get_card() -> int:
     return result
 
 
-def get_user_today_card_count(uid: int) -> int:
+def get_user_today_remaining_times(uid: int) -> int:
     cur = db.cursor()
-    cur.execute('SELECT COUNT(*) FROM fu.scan WHERE uid = %s AND ts >= current_date AND result = 3 AND card != 0;',
-                (uid,))
+    cur.execute(
+        '''SELECT %s
+                + LEAST((SELECT COUNT(*) FROM fu.share_log WHERE uid = 1 AND ts::date = current_date), 1)
+                - (SELECT COUNT(*) FROM fu.scan WHERE uid = %s AND ts >= current_date AND result = 3 AND card != 0);''',
+        (DAY_CARDS_LIMIT, uid,))
     count = cur.fetchone()[0]
     cur.close()
     return count
