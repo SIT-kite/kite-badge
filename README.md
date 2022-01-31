@@ -42,13 +42,16 @@ self.num_classes = 1
 ### 使用
 
 下载项目：
+
 ```
 git clone https://github.com/SIT-kite/kite-badge.git
 cd kite-badge
 ```
 
-进入目录我们可以看到，`sit-badge.pth` 是训练出的模型，`scan.py` 是识别脚本（由 [@wanfengcxz](https://github.com/wanfengcxz) 友情编写），`main.py` 是服务端主程序。
-编辑 `main.py`，以下参数按需配置：
+进入目录我们可以看到，`sit-badge.pth` 是训练出的模型，`scan.py` 是识别脚本（由 [@wanfengcxz](https://github.com/wanfengcxz) 友情编写），`main.py`
+是服务端主程序。 编辑 `web_config.py`，以下参数按需配置：
+
+> 示例参数不代表真实环境下的参数.
 
 ```python
 # Web 服务端密钥
@@ -60,10 +63,6 @@ DB_NAME = ''
 DB_USER = ''
 DB_PASSWD = ''
 
-# 福卡的概率列表
-CARDS_PROBABILITY = [0.20, 0.20, 0.20, 0.20, 0.20]
-# 抽中卡片的概率
-CARD_PROBABILITY = 0.8
 # 活动截止时间
 END_TIME = datetime.date(2022, 2, 10)
 # 单日卡片限制
@@ -71,7 +70,21 @@ DAY_CARDS_LIMIT = 2
 # 校徽置信度限制
 THRESHOLD = 0.90
 ```
-> 示例参数不代表真实环境下的参数.
+
+编辑 `card.py`，修改抽到各种卡片的概率：
+
+```python
+_DEFAULT_PROBABILITY_LIST = [
+    0.6,  # 无卡片
+    0.4 * 0.3,
+    0.4 * 0.25,
+    0.4 * 0.20,
+    0.4 * 0.20,
+    0.4 * 0.05,
+]
+```
+
+需要注意的是，每一个用户的概率组并不同。相关策略见 `generate_probability_list` 函数。
 
 由于本项目作为 [kite-server](https://github.com/SIT-kite/kite-server) 的一部分, `JWT_SECRET` 与其保持一致即可.
 
