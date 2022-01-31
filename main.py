@@ -48,6 +48,7 @@ RESULT_NO_BADGE = 1
 RESULT_REACH_LIMIT = 2
 RESULT_CARD = 3
 RESULT_END = 4
+RESULT_START = 5
 
 
 def response(uid: int, result: int, card: int = 0, status: int = 200) -> Tuple[Dict, int]:
@@ -60,6 +61,8 @@ def upload_image():
     request: flask.Request = flask.request
     uid = flask.g.uid
 
+    if datetime.now() < START_TIME:  # 活动未开始
+        return response(uid, RESULT_START)
     if datetime.now() >= END_TIME:  # 活动已结束
         return response(uid, RESULT_END)
     if get_user_today_remaining_times(uid) == 0:  # 达到单日最大次数
