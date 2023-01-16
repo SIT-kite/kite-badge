@@ -8,11 +8,7 @@ import flask
 import jwt
 
 from card import *
-# from scan import detect
-
-
-def detect():
-    return 1
+from scan import detect
 
 
 path_prefix = "/badge"
