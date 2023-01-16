@@ -1,4 +1,7 @@
+flask
 pyjwt
 loguru
 torch
 opencv-python
+psycopg2-binary
+yolox
