@@ -1,3 +1,4 @@
+from web_config import *
 import base64
 import datetime
 import os
@@ -7,10 +8,14 @@ import flask
 import jwt
 
 from card import *
-from scan import detect
-from web_config import *
+# from scan import detect
 
-path_prefix = "/fu/badge"
+
+def detect():
+    return 1
+
+
+path_prefix = "/badge"
 app = flask.Flask('kite-fu')
 
 
@@ -24,6 +29,9 @@ app = flask.Flask('kite-fu')
 @app.before_request
 def auth():
     request: flask.Request = flask.request
+    if request.path == f'{path_prefix}/login':
+        return None
+
     if request.method == 'OPTIONS':
         return '', 200
 
@@ -50,14 +58,12 @@ RESULT_START = 5
 
 @app.route(f"{path_prefix}/login", methods=['POST'])
 def login():
-    def error():
-        return {'code': 1, 'msg': {}, }
     request: flask.Request = flask.request
     json = request.get_json()
     account = json['account']
     password = json['password']
-    if not hit_card_number(account=account, password=password):
-        return error()
+    if not hit_card_number(account, password):
+        return {'code': 5, 'msg': '凭据认证失败', }
 
     user = query_user(account)
     if user is None:
@@ -66,7 +72,11 @@ def login():
     return {
         'code': 0,
         'data': {
-            'token': jwt.encode({'uid': user.uid}, JWT_SECRET, algorithm=['HS256']),
+            'token': jwt.encode({'uid': user.uid}, JWT_SECRET, algorithm='HS256'),
+            'profile': {
+                'uid': user.uid,
+                'account': user.account,
+            }
         },
     }
 

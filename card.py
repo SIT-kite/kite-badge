@@ -79,22 +79,25 @@ def save_result(uid: int, result: int, card: int = None):
 @dataclass
 class Card:
     card: int
-    ts: datetime
+    ts: str
 
 
-def get_card_list(uid: int):
+def get_card_list(uid: int) -> List[Card]:
     cur = db.cursor()
     cur.execute(
-        'SELECT card, ts FROM fu.scan WHERE uid = %s AND result = 3 AND card != 0;', (uid))
+        'SELECT card, ts FROM fu.scan WHERE uid = %s AND result = 3 AND card != 0;', (uid,))
     result = list(map(lambda x: Card(x[0], x[1]), cur.fetchall()))
     db.commit()
     cur.close()
+    for e in result:
+        ts: datetime = e.ts
+        e.ts = ts.isoformat()
     return result
 
 
 def append_share_log(uid: int):
     cur = db.cursor()
-    cur.execute('INSERT INTO fu.share_log (uid) VALUES (%s);', (uid))
+    cur.execute('INSERT INTO fu.share_log (uid) VALUES (%s);', (uid,))
     db.commit()
     cur.close()
 
@@ -102,7 +105,7 @@ def append_share_log(uid: int):
 def hit_card_number(account: str, card_number: str) -> bool:
     cur = db.cursor()
     cur.execute(
-        'SELECT COUNT(*) FROM \"user\".identity WHERE student_id = $1 AND id_card = $2 LIMIT 1;', (account, card_number))
+        'SELECT COUNT(*) FROM \"user\".identity WHERE student_id = %s AND id_card = %s LIMIT 1;', (account, card_number))
     cnt = cur.fetchone()[0]
     db.commit()
     cur.close()
@@ -118,7 +121,7 @@ class User:
 def query_user(account: str) -> Optional[User]:
     cur = db.cursor()
     cur.execute(
-        'SELECT uid, account FROM \"user\".account WHERE account = %s LIMIT 1;', (account))
+        'SELECT uid, account FROM \"user\".account WHERE account = %s LIMIT 1;', (account,))
     user = cur.fetchone()
     db.commit()
     cur.close()
@@ -130,7 +133,7 @@ def query_user(account: str) -> Optional[User]:
 def create_user(account: str) -> User:
     cur = db.cursor()
     cur.execute(
-        'INSERT INTO \"user\".account (account) VALUES(%s) RETURNING (uid, account);', (account))
+        'INSERT INTO \"user\".account (account) VALUES(%s) RETURNING (uid, account);', (account,))
     user = cur.fetchone()
     db.commit()
     cur.close()
