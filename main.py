@@ -10,14 +10,15 @@ from card import *
 from scan import detect
 from web_config import *
 
+path_prefix = "/fu/badge"
 app = flask.Flask('kite-fu')
 
 
-@app.after_request
-def after_request(resp: flask.Response):
-    resp.headers['Access-Control-Allow-Origin'] = 'https://cdn.kite.sunnysab.cn'
-    resp.headers['Access-Control-Allow-Headers'] = 'Authorization'
-    return resp
+# @app.after_request
+# def after_request(resp: flask.Response):
+#     resp.headers['Access-Control-Allow-Origin'] = 'https://cdn.kite.sunnysab.cn'
+#     resp.headers['Access-Control-Allow-Headers'] = 'Authorization'
+#     return resp
 
 
 @app.before_request
@@ -34,10 +35,6 @@ def auth():
         return {'code': 1, 'msg': '凭据无效'}, 200
 
 
-if not os.path.exists('images/'):
-    os.mkdir('images')
-
-
 def decode_jwt(token: str) -> int:
     """ 根据 JWT Token 解析用户 uid """
     info = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
@@ -51,13 +48,35 @@ RESULT_END = 4
 RESULT_START = 5
 
 
-def response(uid: int, result: int, card: int = 0, status: int = 200) -> Tuple[Dict, int]:
-    save_result(uid, result, card)
-    return {'code': 0, 'data': {'result': result, 'card': card}}, status
+@app.route(f"{path_prefix}/login", methods=['POST'])
+def login():
+    def error():
+        return {'code': 1, 'msg': {}, }
+    request: flask.Request = flask.request
+    json = request.get_json()
+    account = json['account']
+    password = json['password']
+    if not hit_card_number(account=account, password=password):
+        return error()
+
+    user = query_user(account)
+    if user is None:
+        user = create_user(account)
+
+    return {
+        'code': 0,
+        'data': {
+            'token': jwt.encode({'uid': user.uid}, JWT_SECRET, algorithm=['HS256']),
+        },
+    }
 
 
-@app.route("/api/badge/image", methods=['POST', 'OPTIONS'])
+@app.route(f"{path_prefix}/image", methods=['POST', 'OPTIONS'])
 def upload_image():
+    def response(uid: int, result: int, card: int = 0, status: int = 200) -> Tuple[Dict, int]:
+        save_result(uid, result, card)
+        return {'code': 0, 'data': {'result': result, 'card': card}}, status
+
     request: flask.Request = flask.request
     uid = flask.g.uid
 
@@ -88,5 +107,36 @@ def upload_image():
     return response(uid, RESULT_CARD, card)
 
 
+@app.route(f"{path_prefix}/card/", methods=['GET'])
+def get_my_cards():
+    uid = flask.g.uid
+    return {
+        'code': 0,
+        'data': get_card_list(uid),
+    }
+
+
+@app.route(f"{path_prefix}/result", methods=['GET'])
+def get_result():
+    return {
+        'code': 0,
+        'data': {
+            'url': None,
+        },
+    }
+
+
+@app.route(f"{path_prefix}/share", methods=['POST'])
+def share():
+    uid = flask.g.uid
+    append_share_log(uid)
+    return {
+        'code': 0,
+        'data': {},
+    }
+
+
 if __name__ == '__main__':
+    if not os.path.exists('images/'):
+        os.mkdir('images')
     app.run(host='0.0.0.0', port=5001, debug=False)

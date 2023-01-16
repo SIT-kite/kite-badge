@@ -9,8 +9,12 @@ from typing import List
 import psycopg2
 
 from web_config import *
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional
 
-db = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWD, sslmode='disable')
+db = psycopg2.connect(host=DB_HOST, database=DB_NAME,
+                      user=DB_USER, password=DB_PASSWD, sslmode='disable')
 
 _DEFAULT_PROBABILITY_LIST = [
     0.6,  # 无卡片
@@ -66,6 +70,68 @@ def get_user_today_remaining_times(uid: int) -> int:
 
 def save_result(uid: int, result: int, card: int = None):
     cur = db.cursor()
-    cur.execute('INSERT INTO fu.scan (uid, result, card) VALUES (%s, %s, %s)', (uid, result, card))
+    cur.execute(
+        'INSERT INTO fu.scan (uid, result, card) VALUES (%s, %s, %s)', (uid, result, card))
     db.commit()
     cur.close()
+
+
+@dataclass
+class Card:
+    card: int
+    ts: datetime
+
+
+def get_card_list(uid: int):
+    cur = db.cursor()
+    cur.execute(
+        'SELECT card, ts FROM fu.scan WHERE uid = %s AND result = 3 AND card != 0;', (uid))
+    result = list(map(lambda x: Card(x[0], x[1]), cur.fetchall()))
+    db.commit()
+    cur.close()
+    return result
+
+
+def append_share_log(uid: int):
+    cur = db.cursor()
+    cur.execute('INSERT INTO fu.share_log (uid) VALUES (%s);', (uid))
+    db.commit()
+    cur.close()
+
+
+def hit_card_number(account: str, card_number: str) -> bool:
+    cur = db.cursor()
+    cur.execute(
+        'SELECT COUNT(*) FROM \"user\".identity WHERE student_id = $1 AND id_card = $2 LIMIT 1;', (account, card_number))
+    cnt = cur.fetchone()[0]
+    db.commit()
+    cur.close()
+    return cnt != 0
+
+
+@dataclass
+class User:
+    uid: int
+    account: str
+
+
+def query_user(account: str) -> Optional[User]:
+    cur = db.cursor()
+    cur.execute(
+        'SELECT uid, account FROM \"user\".account WHERE account = %s LIMIT 1;', (account))
+    user = cur.fetchone()
+    db.commit()
+    cur.close()
+    if user is None:
+        return None
+    return User(uid=user[0], account=user[1])
+
+
+def create_user(account: str) -> User:
+    cur = db.cursor()
+    cur.execute(
+        'INSERT INTO \"user\".account (account) VALUES(%s) RETURNING (uid, account);', (account))
+    user = cur.fetchone()
+    db.commit()
+    cur.close()
+    return User(uid=user[0], account=user[1])
