@@ -8,7 +8,13 @@ import flask
 import jwt
 
 from card import *
-from scan import detect
+import oss
+
+try:
+    from scan import detect
+except:
+    def detect(path):
+        return 1
 
 
 path_prefix = "/badge"
@@ -58,6 +64,7 @@ def login():
     json = request.get_json()
     account = json['account']
     password = json['password']
+    print([account, password])
     if not hit_card_number(account, password):
         return {'code': 5, 'msg': '凭据认证失败', }
 
@@ -99,10 +106,18 @@ def upload_image():
         file = base64.b64decode(request.data)
     else:
         return '', 400
-    path = f'./images/{uid}_{datetime.now().timestamp()}.jpg'
+    filename = f'{uid}_{datetime.now().timestamp()}.jpg'
+    path = f'./images/{filename}'
     with open(path, 'wb') as f:
         f.write(file)
 
+    if USE_QINIU_STORAGE:
+        oss.upload_file(
+            key=f'fu/{uid}/{filename}',
+            filename=path,
+        )
+
+    os.remove(path)
     # 识别校徽并对置信度降序后返回
     result = detect(path)[0]
     # result = 1.0
