@@ -3,5 +3,6 @@ services:
 
   fu:
     build: .
+    restart: always
     ports:
       - "5001:5001"
