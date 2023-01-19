@@ -1,0 +1,7 @@
+version: '3'
+services:
+
+  fu:
+    build: .
+    ports:
+      - "5001:5001"
