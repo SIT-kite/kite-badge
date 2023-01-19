@@ -113,9 +113,9 @@ def upload_image():
             filename=path,
         )
 
-    os.remove(path)
     # 识别校徽并对置信度降序后返回
     result = detect(path)[0]
+    os.remove(path)
     # result = 1.0
     if result < THRESHOLD:  # 没有识别到校徽
         return response(uid, RESULT_NO_BADGE)
