@@ -8,12 +8,13 @@ from typing import List
 import cv2
 import torch
 from loguru import logger
+from web_config import YOLOX_PATH, YOLOX_MODEL
 from yolox.data.data_augment import ValTransform
 from yolox.exp import get_exp
 from yolox.utils import get_model_info, postprocess
 
 # YOLOX项目路径
-yolox_path = r'/root/YOLOX'
+yolox_path = YOLOX_PATH
 sys.path.append(yolox_path)
 
 
@@ -24,7 +25,8 @@ def init(ckpt_path):
     exp = get_exp(yolox_path + '/exps/example/custom/nano.py', None)
     model = exp.get_model()
 
-    logger.info("Model Summary: {}".format(get_model_info(model, exp.test_size)))
+    logger.info("Model Summary: {}".format(
+        get_model_info(model, exp.test_size)))
 
     # 评估模式
     model.eval()
@@ -70,4 +72,4 @@ def detect(path: str) -> List[float]:
     return inference(img)
 
 
-init('./sit-badge.pth')
+init(YOLOX_MODEL)

@@ -10,11 +10,7 @@ import jwt
 from card import *
 import oss
 
-try:
-    from scan import detect
-except:
-    def detect(path):
-        return 1
+from scan import detect
 
 
 path_prefix = "/badge"

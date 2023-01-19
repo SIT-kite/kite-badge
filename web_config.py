@@ -9,6 +9,9 @@ DB_NAME = ''
 DB_USER = ''
 DB_PASSWD = ''
 
+YOLOX_PATH = '/YOLOX'
+YOLOX_MODEL = './sit-badge.pth'
+
 # 抽中卡片的概率
 CARD_PROBABILITY = 0.35
 # 活动开始时间
