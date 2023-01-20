@@ -7,6 +7,7 @@ from typing import Dict, Tuple
 import flask
 import jwt
 
+from threading import RLock
 from card import *
 import oss
 
@@ -80,6 +81,9 @@ def login():
     }
 
 
+lock = RLock()
+
+
 @app.route(f"{path_prefix}/image", methods=['POST', 'OPTIONS'])
 def upload_image():
     def response(uid: int, result: int, card: int = 0, status: int = 200) -> Tuple[Dict, int]:
@@ -89,39 +93,40 @@ def upload_image():
     request: flask.Request = flask.request
     uid = flask.g.uid
 
-    if datetime.now() < START_TIME:  # 活动未开始
-        return response(uid, RESULT_START)
-    if datetime.now() >= END_TIME:  # 活动已结束
-        return response(uid, RESULT_END)
-    if get_user_today_remaining_times(uid) == 0:  # 达到单日最大次数
-        return response(uid, RESULT_REACH_LIMIT)
+    with lock:
+        if datetime.now() < START_TIME:  # 活动未开始
+            return response(uid, RESULT_START)
+        if datetime.now() >= END_TIME:  # 活动已结束
+            return response(uid, RESULT_END)
+        if get_user_today_remaining_times(uid) == 0:  # 达到单日最大次数
+            return response(uid, RESULT_REACH_LIMIT)
 
-    if request.headers['Content-Type'].startswith('image/'):
-        file = request.data
-    elif request.headers['Content-Type'] == 'text/plain':
-        file = base64.b64decode(request.data)
-    else:
-        return '', 400
-    filename = f'{uid}_{datetime.now().timestamp()}.jpg'
-    path = f'./images/{filename}'
-    with open(path, 'wb') as f:
-        f.write(file)
+        if request.headers['Content-Type'].startswith('image/'):
+            file = request.data
+        elif request.headers['Content-Type'] == 'text/plain':
+            file = base64.b64decode(request.data)
+        else:
+            return '', 400
+        filename = f'{uid}_{datetime.now().timestamp()}.jpg'
+        path = f'./images/{filename}'
+        with open(path, 'wb') as f:
+            f.write(file)
 
-    if USE_QINIU_STORAGE:
-        oss.upload_file(
-            key=f'fu/{uid}/{filename}',
-            filename=path,
-        )
+        if USE_QINIU_STORAGE:
+            oss.upload_file(
+                key=f'fu/{uid}/{filename}',
+                filename=path,
+            )
 
-    # 识别校徽并对置信度降序后返回
-    result = detect(path)[0]
-    os.remove(path)
-    # result = 1.0
-    if result < THRESHOLD:  # 没有识别到校徽
-        return response(uid, RESULT_NO_BADGE)
+        # 识别校徽并对置信度降序后返回
+        result = detect(path)[0]
+        os.remove(path)
+        # result = 1.0
+        if result < THRESHOLD:  # 没有识别到校徽
+            return response(uid, RESULT_NO_BADGE)
 
-    card: int = get_card()
-    return response(uid, RESULT_CARD, card)
+        card: int = get_card()
+        return response(uid, RESULT_CARD, card)
 
 
 @app.route(f"{path_prefix}/card/", methods=['GET'])
